@@ -1,0 +1,20 @@
+v22.0.6
+- Epg: add parsed EPG-cache binary file
+
+v22.0.5
+- Epg: optimize download xmltv-file based on TVLINK xmltv.status
+
+v22.0.4
+- Del: option Use FFmpeg playlist
+
+v22.0.3
+- Set: one option Use Inputstream FFmpeg Direct
+
+v22.0.2
+- Add: always play EPG Tags as live-stream
+
+v22.0.1
+- Fix: Timeshift/Catchup
+
+v22.0.0
+- Init: first version for Kodi-22 (Piers)

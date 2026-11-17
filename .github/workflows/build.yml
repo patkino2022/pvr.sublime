@@ -1,0 +1,114 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  # Kodi the boxes run: 22.0-RC1, Git:4665ec22a4 (kodi.binary.instance.pvr 9.2.0)
+  XBMC_REF: 4665ec22a4095ede758672c5d199802ce7efe916
+  PUGIXML_VER: "1.14"
+  ZLIB_VER: "1.3.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        kodi: ["22", "21"]
+        arch: [aarch64, armv7, x86_64]
+        include:
+          - arch: aarch64
+            triple: aarch64-linux-gnu
+            pkg: g++-aarch64-linux-gnu
+          - arch: armv7
+            triple: arm-linux-gnueabihf
+            pkg: g++-arm-linux-gnueabihf
+          - arch: x86_64
+            triple: x86_64-linux-gnu
+            pkg: g++
+          # Kodi 22 (Piers RC1, kodi.binary.instance.pvr 9.2.0) и Kodi 21 (Omega 21.2, 9.0.x)
+          - kodi: "22"
+            xbmc_ref: 4665ec22a4095ede758672c5d199802ce7efe916
+            suffix: ""
+          - kodi: "21"
+            xbmc_ref: 21.2-Omega
+            suffix: "-kodi21"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ${{ matrix.pkg }} cmake ninja-build
+
+      - name: kodi-dev-kit
+        run: |
+          git init -q xbmc && cd xbmc
+          git remote add origin https://github.com/xbmc/xbmc.git
+          git sparse-checkout set xbmc/addons/kodi-dev-kit/include
+          git fetch -q --depth 1 origin "${{ matrix.xbmc_ref }}"
+          git checkout -q FETCH_HEAD
+          grep -E 'ADDON_INSTANCE_VERSION_PVR ' xbmc/addons/kodi-dev-kit/include/kodi/versions.h
+
+      - name: pugixml
+        run: curl -sSL "https://github.com/zeux/pugixml/archive/refs/tags/v$PUGIXML_VER.tar.gz" | tar xz && mv "pugixml-$PUGIXML_VER" pugixml
+
+      - name: zlib (static)
+        run: |
+          curl -sSL "https://github.com/madler/zlib/releases/download/v$ZLIB_VER/zlib-$ZLIB_VER.tar.gz" | tar xz
+          cd "zlib-$ZLIB_VER"
+          CC=${{ matrix.triple }}-gcc CFLAGS="-O2 -fPIC $([ ${{ matrix.arch }} = armv7 ] && echo -march=armv7-a -mfpu=neon -mfloat-abi=hard)" ./configure --static --prefix="$GITHUB_WORKSPACE/zlib-${{ matrix.arch }}" >/dev/null
+          make -s -j"$(nproc)" install >/dev/null
+
+      - name: Build
+        run: |
+          VER=$(sed -n 's/^v\([0-9][0-9.]*\)$/\1/p' pvr.sublime/addon.xml.in | head -1)
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/${{ matrix.triple }}.cmake -DCMAKE_BUILD_TYPE=Release \n            -DKODI21=${{ matrix.kodi == '21' && 'ON' || 'OFF' }} \
+            -DADDON_VERSION="$VER" -DKODI_DEVKIT="$GITHUB_WORKSPACE/xbmc/xbmc/addons/kodi-dev-kit" \
+            -DPUGIXML_DIR="$GITHUB_WORKSPACE/pugixml" -DZLIB_ROOT_DIR="$GITHUB_WORKSPACE/zlib-${{ matrix.arch }}"
+          cmake --build build
+          ${{ matrix.triple }}-readelf -d "build/pvr.sublime.so.$VER" | grep NEEDED
+          ${{ matrix.triple }}-objdump -T "build/pvr.sublime.so.$VER" | grep -oE 'GLIBC_[0-9.]+' | sort -Vu | tail -1
+          ${{ matrix.triple }}-nm -D --defined-only "build/pvr.sublime.so.$VER" | grep -E ' ADDON_'
+
+      - name: Package
+        run: |
+          D=pkg/pvr.sublime
+          mkdir -p "$D"
+          cp -r pvr.sublime/resources pvr.sublime/icon.png pvr.sublime/changelog.txt LICENSE.md "$D/"
+          cp build/addon/pvr.sublime/addon.xml "$D/"
+          cp "build/pvr.sublime.so.$VER" "$D/"
+          ${{ matrix.triple }}-strip --strip-unneeded "$D/pvr.sublime.so.$VER"
+          (cd pkg && zip -qr "../pvr.sublime-$VER${{ matrix.suffix }}-${{ matrix.arch }}.zip" pvr.sublime)
+          unzip -l "pvr.sublime-$VER${{ matrix.suffix }}-${{ matrix.arch }}.zip"
+          cat "$D/addon.xml" | head -20
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pvr.sublime-${{ env.VER }}${{ matrix.suffix }}-${{ matrix.arch }}
+          path: pvr.sublime-${{ env.VER }}${{ matrix.suffix }}-${{ matrix.arch }}.zip
+
+  release:
+    # выпуск vX.Y.Z получает zip всех трёх архитектур (тег или ручной запуск при готовом выпуске)
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(sed -n 's/^v\([0-9][0-9.]*\)$/\1/p' pvr.sublime/addon.xml.in | head -1)
+          ls out
+          gh release view "v$VER" >/dev/null 2>&1 || gh release create "v$VER" --title "pvr.sublime $VER" --notes "pvr.sublime $VER: Kodi 22 и Kodi 21 (-kodi21); aarch64, armv7, x86_64"
+          gh release upload "v$VER" out/*.zip --clobber
