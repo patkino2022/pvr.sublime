@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <settings version="1">
+  <!-- 21.11.2026: поля, которые service.tvlink перезаписывает (sync_pvr_client), скрыты
+       visible=false, но остаются в определении: Kodi хранит и отдаёт значение только
+       описанной настройки, иначе getSetting = "" и service.tvlink писал бы её каждую минуту -->
   <section id="pvr.tvlink">
 
     <!-- M3U -->
@@ -22,6 +25,7 @@
           <control type="edit" format="string" />
         </setting>
         <setting id="tvlinkUser" type="string" label="30709" help="30710">
+          <visible>false</visible>
           <level>0</level>
           <default></default>
           <constraints>
@@ -30,6 +34,7 @@
           <control type="edit" format="string" />
         </setting>
         <setting id="tvlinkToken" type="string" label="30714" help="30715">
+          <visible>false</visible>
           <level>0</level>
           <default></default>
           <constraints>
@@ -38,16 +43,19 @@
           <control type="edit" format="string" />
         </setting>
         <setting id="m3uCache" type="boolean" label="30025" help="30604">
+          <visible>false</visible>
           <level>0</level>
           <default>false</default>
           <control type="toggle" />
         </setting>
         <setting id="startNum" type="integer" label="30013" help="30605">
+          <visible>false</visible>
           <level>0</level>
           <default>1</default>
           <control type="edit" format="integer" />
         </setting>
         <setting id="numberByOrder" type="boolean" label="30014" help="30606">
+          <visible>false</visible>
           <level>2</level>
           <default>false</default>
           <control type="toggle" />
@@ -121,6 +129,7 @@
           <control type="toggle" />
         </setting>
         <setting id="directCatchup" type="boolean" label="30049" help="30050">
+          <visible>false</visible>
           <level>0</level>
           <default>false</default>
           <control type="toggle" />
@@ -132,6 +141,7 @@
     <category id="epgsettings" label="30020" help="30620">
       <group id="1" label="30019">
         <setting id="epgTimeShift" type="number" label="30024" help="30625">
+          <visible>false</visible>
           <level>0</level>
           <default>0</default>
           <constraints>

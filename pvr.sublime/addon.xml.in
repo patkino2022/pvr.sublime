@@ -21,6 +21,8 @@
       <icon>icon.png</icon>
     </assets>
     <news>
+v22.1.4
+- Settings: fields service.tvlink always overwrites are hidden (still defined)
 v22.1.3
 - DASH channels (#KODIPROP:inputstream=inputstream.adaptive from service.tvlink) play through inputstream.adaptive
 v22.1.2
