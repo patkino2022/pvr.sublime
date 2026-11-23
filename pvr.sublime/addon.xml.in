@@ -8,9 +8,9 @@
   </requires>
   <extension
     point="kodi.pvrclient"
-    library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+    library_@PLATFORM_LIB@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
-    <platform>@PLATFORM@</platform>
+    <platform>@PLATFORM_TAG@</platform>
     <license>GPL-2.0-or-later</license>
     <source>https://github.com/patkino2022/pvr.sublime</source>
     <summary lang="en_GB">TV client for service.tvlink</summary>
