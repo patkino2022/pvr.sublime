@@ -16,6 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         kodi: ["22", "21"]
         arch: [aarch64, armv7, x86_64]
@@ -97,6 +98,7 @@ jobs:
   build-windows:
     runs-on: windows-2022
     strategy:
+      fail-fast: false
       matrix:
         kodi: ["22", "21"]
         include:
@@ -153,6 +155,7 @@ jobs:
   build-android:
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         kodi: ["22", "21"]
         abi: [arm64-v8a, armeabi-v7a]
@@ -212,6 +215,7 @@ jobs:
   build-macos:
     runs-on: macos-14
     strategy:
+      fail-fast: false
       matrix:
         kodi: ["22", "21"]
         include:
