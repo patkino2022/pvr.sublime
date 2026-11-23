@@ -21,6 +21,8 @@
       <icon>icon.png</icon>
     </assets>
     <news>
+v22.1.5
+- Builds for Windows x86_64, Android aarch64/armv7 and macOS (x86_64 + arm64)
 v22.1.4
 - Settings: fields service.tvlink always overwrites are hidden (still defined)
 v22.1.3
